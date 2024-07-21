@@ -10,4 +10,4 @@ eframe = { version = "0.28.1", features = ["default", "__screenshot"] }
 egui_extras = { version = "0.28.1", features = ["default","all_loaders"] }
 chrono = "0.4.38"
 rand = "0.9.0-alpha.1"
-
+egui-toast = "0.14.0"

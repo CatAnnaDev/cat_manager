@@ -4,7 +4,8 @@ mod race;
 mod log_color;
 
 use eframe::egui;
-use eframe::egui::{Align, Layout};
+use eframe::egui::{Align, Align2, Button, Layout};
+use egui_toast::{Toast, ToastKind, ToastOptions, Toasts};
 use crate::cat::CatInfo;
 
 fn main() -> eframe::Result {
@@ -13,7 +14,7 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default().with_inner_size([1080.0, 1200.0]),
         ..Default::default()
     };
-    let mut cats = CatInfo::spawn_new_cat(4);
+    let cats = CatInfo::spawn_new_cat(4);
     eframe::run_native(
         "Cat Manager",
         options,
@@ -41,20 +42,21 @@ struct MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-
-            // print image
-            //egui::ScrollArea::both().show(ui, |ui| {
-            //    ui.add(egui::Image::from_uri("https://w7.pngwing.com/pngs/174/600/png-transparent-cat-animal-lovely-cat.png").rounding(10.0), );
-            //});
+            let mut toasts = Toasts::new().anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0)).direction(egui::Direction::BottomUp);
 
             self.columns = 0;
 
             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                 ui.columns(5, |columns| {
-                    for cat in &self.cat_vec {
+                    for cat in self.cat_vec.iter_mut() {
                         columns[self.columns].group(|ui| {
 
-                            ui.add(egui::ImageButton::new("https://images.apilist.fun/the_cat_api_api.png").rounding(10.0));
+                            ui.add(egui::Image::new("https://images.apilist.fun/the_cat_api_api.png").rounding(10.0)).context_menu(|ui| {
+                                if ui.add(Button::new("Feed")).clicked(){ toast(&mut toasts, cat.feed()); }
+                                if ui.add(Button::new("Play")).clicked(){ toast(&mut toasts, cat.play());}
+                                if ui.add(Button::new("Sleep")).clicked() {toast(&mut toasts, cat.toggle_sleep()); }
+                            });
+
                             ui.add(egui::Label::new(format!("{}", cat)).truncate());
 
                             if self.columns == 4 {
@@ -66,12 +68,25 @@ impl eframe::App for MyApp {
                         });
                     }
                 })
-            })
-        });
+            });
+            // update ui toast
+            toasts.show(ctx);
 
+        });
         // close confirmation
         ask_close_app(self, &ctx);
     }
+}
+
+fn toast(toasts: &mut Toasts, message: String){
+    toasts.add(Toast {
+        text: message.into(),
+        kind: ToastKind::Info,
+        options: ToastOptions::default()
+            .duration_in_seconds(2.0)
+            .show_progress(true),
+        ..Default::default()
+    });
 }
 
 fn ask_close_app(data_self: &mut MyApp, ctx: &egui::Context) {

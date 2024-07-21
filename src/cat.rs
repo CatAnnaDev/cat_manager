@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use rand::{random, Rng, thread_rng};
 
-use crate::{bool_state, info, interaction, warn};
+use crate::{bool_state, warn};
 use crate::cat::Gender::{Female, Male};
 use crate::color::ColorType;
 use crate::race::Race;
@@ -96,13 +96,6 @@ fn calculate_age(birth_date: NaiveDate, current_date: NaiveDate) -> u8 {
 }
 
 impl CatInfo {
-    fn default_cat() -> Self {
-        CatInfo { ..Default::default() }
-    }
-
-    fn new_cat(cat_info: CatInfo) -> Self {
-        cat_info
-    }
 
     pub(crate) fn spawn_new_cat(nb_cat: u8) -> Vec<Self> {
         let mut cat_vec = Vec::new();
@@ -111,10 +104,10 @@ impl CatInfo {
             let color: ColorType = random();
             let race: Race = random();
             let sleep = random();
-            let health = random::<u8>();
+            let health = thread_rng().gen_range(10..100);
             let (name, gender) = Gender::get_random_name_and_gender();
             let (birth_date, arrival_date) = generate_dates();
-            cat_vec.push(Self::new_cat(CatInfo {
+            cat_vec.push(CatInfo {
                 arrived_date: arrival_date,
                 bd_date: birth_date,
                 name,
@@ -125,41 +118,41 @@ impl CatInfo {
                 sleep,
                 health,
                 gender,
-            }));
+            });
         }
         cat_vec
     }
 
-    pub(crate) fn feed(&mut self) {
+    pub(crate) fn feed(&mut self) -> String {
         self.weight += 0.1;
         self.health += 5;
-        interaction!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health);
+        format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health)
     }
 
-    pub(crate) fn play(&mut self) {
+    pub(crate) fn play(&mut self) -> String {
         if !self.sleep {
             self.weight -= 0.05;
             self.health += 2;
-            interaction!("{} a joué. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health);
+            format!("{} a joué. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health)
         } else {
-            interaction!("{} dort et ne peut pas jouer.", self.name);
+            format!("{} dort et ne peut pas jouer.", self.name)
         }
     }
 
-    pub(crate) fn toggle_sleep(&mut self) {
+    pub(crate) fn toggle_sleep(&mut self) -> String {
         self.sleep = !self.sleep;
         if self.sleep {
             self.health += 10;
-            interaction!("{} fait maintenant dodo. Santé: {}", self.name, self.health);
+            format!("{} fait maintenant dodo. Santé: {}", self.name, self.health)
         } else {
-            interaction!("{} est maintenant réveillé.", self.name);
+            format!("{} est maintenant réveillé.", self.name)
         }
     }
 
-    pub(crate) fn age(&mut self) {
+    pub(crate) fn age(&mut self) -> String {
         self.age += 1;
         self.health -= 5;
-        interaction!("{} a vieilli. Nouvel âge: {}, Santé: {}", self.name, self.age, self.health);
+        format!("{} a vieilli. Nouvel âge: {}, Santé: {}", self.name, self.age, self.health)
     }
 
     pub(crate) fn mate(&self, other: &Self,) -> Option<Self> {
@@ -191,8 +184,8 @@ impl CatInfo {
         })
     }
 
-    pub(crate) fn minimal_info(&self){
-        info!("Name: {}\n- Genre: {}\x1B[32m\n- Age: {}\n- Sleep: {}\n", self.name, self.gender, self.age, bool_state!("YES", "NO", self.sleep))
+    pub(crate) fn minimal_info(&self)  -> String{
+        format!("Name: {}\n- Genre: {}\x1B[32m\n- Age: {}\n- Sleep: {}\n", self.name, self.gender, self.age, bool_state!("YES", "NO", self.sleep))
     }
 
 }
