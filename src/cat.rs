@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 use chrono::{Datelike, Duration, Local, NaiveDate};
 use rand::{random, Rng, thread_rng};
 
-use crate::{bool_state, warn};
+use crate::{bool_state};
 use crate::cat::Gender::{Female, Male};
 use crate::color::ColorType;
 use crate::race::Race;
@@ -171,14 +171,15 @@ impl CatInfo {
         format!("{} a vieilli. Nouvel âge: {}, Santé: {}", self.name, self.age, self.health)
     }
 
-    pub(crate) fn mate(&self, other: &Self,) -> Option<Self> {
+    pub(crate) fn mate(&self, other: &Self,) -> Result<Self, String> {
+        let mut tmp = String::new();
 
         if self.gender.eq(&other.gender) || self.sleep || other.sleep {
-            warn!("\nCan't mate {} with {}\nbecause:", self.name, other.name);
-            if self.gender.eq(&other.gender) { warn!("- Same Sexe"); }
-            if self.sleep { warn!("- {} sleep", self.name); }
-            if other.sleep { warn!("- {} sleep", other.name); }
-            return None;
+            tmp.push_str(&*format!("\nCan't mate {} with {}\nbecause:", self.name, other.name));
+            if self.gender.eq(&other.gender) { tmp.push_str(&*format!("- Same Sexe")); }
+            if self.sleep { tmp.push_str(&*format!("- {} sleep", self.name)); }
+            if other.sleep { tmp.push_str(&*format!("- {} sleep", other.name)); }
+            return Err(tmp);
         }
 
         //let name = format!("{}{}", &self.name[0..self.name.len() / 2], &other.name[other.name.len() / 2..]);
@@ -186,7 +187,7 @@ impl CatInfo {
         let color = if random() { self.color_type } else { other.color_type };
         let race = if random() { self.race } else { other.race };
 
-        Some(CatInfo {
+        Ok(CatInfo {
             arrived_date: Local::now().naive_utc().date(),
             bd_date: Local::now().naive_utc().date(),
             name,

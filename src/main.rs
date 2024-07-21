@@ -51,15 +51,29 @@ impl eframe::App for MyApp {
             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.columns(5, |columns| {
-                        for cat in self.cat_vec.iter_mut() {
+                        for cat in 0..self.cat_vec.len() {
                             columns[self.columns].group(|ui| {
                                 ui.add(egui::Image::new("https://images.apilist.fun/the_cat_api_api.png").rounding(10.0)).context_menu(|ui| {
-                                    if ui.add(Button::new("Feed")).clicked() { toast(&mut toasts, cat.feed()); }
-                                    if ui.add(Button::new("Play")).clicked() { toast(&mut toasts, cat.play()); }
-                                    if ui.add(Button::new("Sleep")).clicked() { toast(&mut toasts, cat.toggle_sleep()); }
+                                    if ui.add(Button::new("Feed")).clicked() { toast(&mut toasts, self.cat_vec[cat].feed()); }
+                                    if ui.add(Button::new("Play")).clicked() { toast(&mut toasts, self.cat_vec[cat].play()); }
+                                    if ui.add(Button::new("Sleep")).clicked() { toast(&mut toasts, self.cat_vec[cat].toggle_sleep()); }
+
+                                    ui.menu_button("Mate with", |ui | {
+                                        for mate_cat in 0..self.cat_vec.len() {
+                                            if self.cat_vec[cat].gender.ne(&self.cat_vec[mate_cat].gender){
+                                                if ui.button(self.cat_vec[mate_cat].name).clicked() {
+                                                    match self.cat_vec[cat].mate(&self.cat_vec[mate_cat]){
+                                                        Ok(e) => {self.cat_vec.push(e)}
+                                                        Err(e) => {toast(&mut toasts, e)}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+
                                 });
 
-                                ui.add(egui::Label::new(format!("{}", cat)).truncate());
+                                ui.add(egui::Label::new(format!("{}", self.cat_vec[cat])).truncate());
 
                                 if self.columns == 4 {
                                     ui.end_row();
@@ -86,7 +100,7 @@ fn toast(toasts: &mut Toasts, message: String){
         text: message.into(),
         kind: ToastKind::Success,
         options: ToastOptions::default()
-            .duration_in_seconds(2.0)
+            .duration_in_seconds(5.0)
             .show_progress(true),
         ..Default::default()
     });
