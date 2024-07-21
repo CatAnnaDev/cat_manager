@@ -1,13 +1,33 @@
 use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
-
+use std::sync::Arc;
 use chrono::{Datelike, Duration, Local, NaiveDate};
+use eframe::egui::load::Bytes;
 use rand::{random, Rng, thread_rng};
-
+use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
 use crate::{bool_state};
 use crate::cat::Gender::{Female, Male};
 use crate::color::ColorType;
 use crate::race::Race;
+
+type Img = Vec<ImgResult>;
+
+#[derive(Deserialize, Serialize)]
+struct ImgResult{
+    url: String,
+}
+
+pub fn get_cat_image(client: &Client) -> Bytes {
+    let x = client.get("https://api.thecatapi.com/v1/images/search?size=med&mime_types=png,jpg&format=json&has_breeds=true&order=RANDOM&page=0&limit=1")
+        .send().unwrap().text().unwrap();
+    println!("{x}");
+    let url = serde_json::from_str::<Img>(&x).unwrap();
+    let b = client.get(&url.first().unwrap().url).send().unwrap().bytes().unwrap();
+    Bytes::Shared(Arc::from(b.iter().as_slice()))
+
+}
+
 
 const GENDER_MALE: [&str; 21] = [
     "Mittens", "Whiskers", "Shadow", "Smokey",
@@ -23,7 +43,7 @@ const GENDER_FEMALE: [&str; 17] = [
     "Nala", "Pepper", "Zoe", "Callie", "Angel", "Kitty",
 ];
 
-#[derive(Eq, Default, PartialEq)]
+#[derive(Eq, Default, PartialEq, Clone)]
 pub enum Gender {
     #[default]
     Female,
@@ -52,9 +72,9 @@ impl Gender {
         }
     }
 }
-
-#[derive(Default)]
+#[derive(Clone)]
 pub struct CatInfo {
+    pub cat_image_byte: Bytes,
     pub arrived_date: NaiveDate,
     pub bd_date: NaiveDate,
     pub name: &'static str,
@@ -97,10 +117,11 @@ fn calculate_age(birth_date: NaiveDate, current_date: NaiveDate) -> u8 {
 
 impl CatInfo {
 
-    pub(crate) fn new_cat() -> Self{
+    pub(crate) fn new_cat(client: &Client) -> Self{
         let (name, gender) = Gender::get_random_name_and_gender();
         let (birth_date, arrival_date) = generate_dates();
         Self{
+            cat_image_byte: get_cat_image(&client),
             arrived_date: arrival_date,
             bd_date: birth_date,
             name,
@@ -113,7 +134,7 @@ impl CatInfo {
             gender,
         }
     }
-    pub(crate) fn spawn_new_cat(nb_cat: u8) -> Vec<Self> {
+    pub(crate) fn spawn_new_cat(nb_cat: u8, client: Client) -> Vec<Self> {
         let mut cat_vec = Vec::new();
 
         for _ in 0..nb_cat {
@@ -124,6 +145,7 @@ impl CatInfo {
             let (name, gender) = Gender::get_random_name_and_gender();
             let (birth_date, arrival_date) = generate_dates();
             cat_vec.push(CatInfo {
+                cat_image_byte: get_cat_image(&client),
                 arrived_date: arrival_date,
                 bd_date: birth_date,
                 name,
@@ -171,7 +193,7 @@ impl CatInfo {
         format!("{} a vieilli. Nouvel âge: {}, Santé: {}", self.name, self.age, self.health)
     }
 
-    pub(crate) fn mate(&self, other: &Self,) -> Result<Self, String> {
+    pub(crate) fn mate(&self, other: &Self, client: &Client) -> Result<Self, String> {
         let mut tmp = String::new();
 
         if self.gender.eq(&other.gender) || self.sleep || other.sleep {
@@ -188,6 +210,7 @@ impl CatInfo {
         let race = if random() { self.race } else { other.race };
 
         Ok(CatInfo {
+            cat_image_byte: get_cat_image(&client),
             arrived_date: Local::now().naive_utc().date(),
             bd_date: Local::now().naive_utc().date(),
             name,
