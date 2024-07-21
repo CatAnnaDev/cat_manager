@@ -97,6 +97,22 @@ fn calculate_age(birth_date: NaiveDate, current_date: NaiveDate) -> u8 {
 
 impl CatInfo {
 
+    pub(crate) fn new_cat() -> Self{
+        let (name, gender) = Gender::get_random_name_and_gender();
+        let (birth_date, arrival_date) = generate_dates();
+        Self{
+            arrived_date: arrival_date,
+            bd_date: birth_date,
+            name,
+            age: calculate_age(birth_date, Local::now().naive_utc().date()),
+            color_type: random(),
+            race: random(),
+            weight: thread_rng().gen_range(0.5..7.0),
+            sleep: false,
+            health: 100,
+            gender,
+        }
+    }
     pub(crate) fn spawn_new_cat(nb_cat: u8) -> Vec<Self> {
         let mut cat_vec = Vec::new();
 

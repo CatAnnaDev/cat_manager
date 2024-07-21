@@ -14,7 +14,7 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default().with_inner_size([1080.0, 1200.0]),
         ..Default::default()
     };
-    let cats = CatInfo::spawn_new_cat(4);
+    let cats = CatInfo::spawn_new_cat(2);
     eframe::run_native(
         "Cat Manager",
         options,
@@ -43,31 +43,34 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             let mut toasts = Toasts::new().anchor(Align2::RIGHT_BOTTOM, (-10.0, -10.0)).direction(egui::Direction::BottomUp);
-
+            if ui.add(Button::new("Spawn new cat")).clicked(){
+                self.cat_vec.push(CatInfo::new_cat());
+            }
             self.columns = 0;
 
             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                ui.columns(5, |columns| {
-                    for cat in self.cat_vec.iter_mut() {
-                        columns[self.columns].group(|ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    ui.columns(5, |columns| {
+                        for cat in self.cat_vec.iter_mut() {
+                            columns[self.columns].group(|ui| {
+                                ui.add(egui::Image::new("https://images.apilist.fun/the_cat_api_api.png").rounding(10.0)).context_menu(|ui| {
+                                    if ui.add(Button::new("Feed")).clicked() { toast(&mut toasts, cat.feed()); }
+                                    if ui.add(Button::new("Play")).clicked() { toast(&mut toasts, cat.play()); }
+                                    if ui.add(Button::new("Sleep")).clicked() { toast(&mut toasts, cat.toggle_sleep()); }
+                                });
 
-                            ui.add(egui::Image::new("https://images.apilist.fun/the_cat_api_api.png").rounding(10.0)).context_menu(|ui| {
-                                if ui.add(Button::new("Feed")).clicked(){ toast(&mut toasts, cat.feed()); }
-                                if ui.add(Button::new("Play")).clicked(){ toast(&mut toasts, cat.play());}
-                                if ui.add(Button::new("Sleep")).clicked() {toast(&mut toasts, cat.toggle_sleep()); }
+                                ui.add(egui::Label::new(format!("{}", cat)).truncate());
+
+                                if self.columns == 4 {
+                                    ui.end_row();
+                                    self.columns = 0;
+                                } else {
+                                    self.columns += 1;
+                                }
                             });
-
-                            ui.add(egui::Label::new(format!("{}", cat)).truncate());
-
-                            if self.columns == 4 {
-                                ui.end_row();
-                                self.columns = 0;
-                            } else {
-                                self.columns += 1;
-                            }
-                        });
-                    }
-                })
+                        }
+                    })
+                });
             });
             // update ui toast
             toasts.show(ctx);
@@ -81,7 +84,7 @@ impl eframe::App for MyApp {
 fn toast(toasts: &mut Toasts, message: String){
     toasts.add(Toast {
         text: message.into(),
-        kind: ToastKind::Info,
+        kind: ToastKind::Success,
         options: ToastOptions::default()
             .duration_in_seconds(2.0)
             .show_progress(true),
