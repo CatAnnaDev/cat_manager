@@ -56,7 +56,7 @@ impl eframe::App for MyApp {
                             ui.add(egui::Image::new(format!("file://{}", self.cat_vec[cat].cat_image_byte.clone())).rounding(10.0)).context_menu(|ui| {
                                 if ui.add(Button::new("Feed")).clicked() { toast(&mut toasts, self.cat_vec[cat].feed()); }
                                 if ui.add(Button::new("Play")).clicked() { toast(&mut toasts, self.cat_vec[cat].play()); }
-                                if ui.add(Button::new( format!("Sleep ({})", self.cat_vec[cat].sleep))).clicked() { toast(&mut toasts, self.cat_vec[cat].toggle_sleep()); }
+                                if ui.add(Button::new( format!("Sleep ({})", bool_state!("YES", "NO", self.cat_vec[cat].sleep)))).clicked() { toast(&mut toasts, self.cat_vec[cat].toggle_sleep()); }
                                 ui.menu_button("Mate with", |ui| {
                                     for mate_cat in 0..self.cat_vec.len() {
                                         if self.cat_vec[cat].gender.ne(&self.cat_vec[mate_cat].gender) {
@@ -70,7 +70,6 @@ impl eframe::App for MyApp {
                                     }
                                 });
                             });
-                            //ui.ctx().forget_all_images();
                             ui.add(egui::Label::new(format!("{}", self.cat_vec[cat])).truncate());
                         });
 
