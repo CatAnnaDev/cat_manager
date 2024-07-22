@@ -2,13 +2,13 @@ use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
-use chrono::{Datelike, Duration, Local, NaiveDate};
+use chrono::{Datelike, DateTime, Duration, Local, NaiveDate};
 use rand::{random, Rng, thread_rng};
 use crate::{bool_state};
 use crate::cat::Gender::{Female, Male};
+use crate::cat_name::{GENDER_FEMALE, GENDER_MALE};
 use crate::color::ColorType;
 use crate::race::Race;
-
 
 pub fn get_cat_image() -> String {
     let mut tmp = vec![];
@@ -24,19 +24,6 @@ pub fn get_cat_image() -> String {
     tmp.get(thread_rng().gen_range(0..tmp.len())).unwrap().to_str().unwrap().to_string()
 }
 
-const GENDER_MALE: [&str; 21] = [
-    "Mittens", "Whiskers", "Shadow", "Smokey",
-    "Tiger", "Oreo", "Simba", "Ginger", "Felix",
-    "Jack", "Jasper", "Leo", "Loki", "Lucky",
-    "Max", "Milo", "Chamallow", "Oscar",
-    "Peanut", "Rocky", "Surf",
-];
-
-const GENDER_FEMALE: [&str; 17] = [
-    "Fluffy", "Luna", "Suzie", "Princess", "Marelle",
-    "Bella", "Chloe", "Coco", "Daisy", "Nyx", "Dinah",
-    "Nala", "Pepper", "Zoe", "Callie", "Angel", "Kitty",
-];
 
 #[derive(Eq, Default, PartialEq, Clone)]
 pub enum Gender {
@@ -67,6 +54,7 @@ impl Gender {
         }
     }
 }
+
 #[derive(Clone)]
 pub struct CatInfo {
     pub cat_image_byte: String,
@@ -78,8 +66,10 @@ pub struct CatInfo {
     pub race: Race,
     pub weight: f32,
     pub sleep: bool,
-    pub health: u8,
+    pub health: f32,
+    pub food: f32,
     pub gender: Gender,
+    pub last_updated: DateTime<Local>,
 }
 
 fn generate_random_date_in_range(start_date: NaiveDate, end_date: NaiveDate) -> NaiveDate {
@@ -125,10 +115,13 @@ impl CatInfo {
             race: random(),
             weight: thread_rng().gen_range(0.5..7.0),
             sleep: false,
-            health: 100,
+            health: 100.0,
+            food: 100.0,
             gender,
+            last_updated: Local::now(),
         }
     }
+
     pub(crate) fn spawn_new_cat(nb_cat: u8) -> Vec<Self> {
         let mut cat_vec = Vec::new();
 
@@ -136,7 +129,7 @@ impl CatInfo {
             let color: ColorType = random();
             let race: Race = random();
             let sleep = random();
-            let health = thread_rng().gen_range(10..100);
+            let health = thread_rng().gen_range(10.0..100.0);
             let (name, gender) = Gender::get_random_name_and_gender();
             let (birth_date, arrival_date) = generate_dates();
             cat_vec.push(CatInfo {
@@ -150,42 +143,43 @@ impl CatInfo {
                 weight: thread_rng().gen_range(1.5..7.0),
                 sleep,
                 health,
+                food: 100.0,
                 gender,
+                last_updated: Local::now(),
             });
         }
         cat_vec
     }
 
-    pub(crate) fn feed(&mut self) -> String {
-        self.weight += 0.1;
-        self.health += 5;
-        format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health)
+    pub(crate) fn feed(&mut self, weight: f32, health: f32) -> String {
+        if !self.sleep {
+            self.weight += weight; // 0.1
+            self.health += health; // 5
+            self.food += weight;  // Augmente la nourriture
+            format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}, Nourriture: {:.1}", self.name, self.weight, self.health, self.food)
+        }else {
+            format!("{} dort et ne peut pas manger.", self.name)
+        }
     }
 
-    pub(crate) fn play(&mut self) -> String {
+    pub(crate) fn play(&mut self, weight: f32, health: f32) -> String {
         if !self.sleep {
-            self.weight -= 0.05;
-            self.health += 2;
+            self.weight -= weight; // 0.05
+            self.health += health; // 2
             format!("{} a joué. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health)
         } else {
             format!("{} dort et ne peut pas jouer.", self.name)
         }
     }
 
-    pub(crate) fn toggle_sleep(&mut self) -> String {
+    pub(crate) fn toggle_sleep(&mut self, health: f32) -> String {
         self.sleep = !self.sleep;
         if self.sleep {
-            self.health += 10;
+            self.health += health; // 10
             format!("{} fait maintenant dodo. Santé: {}", self.name, self.health)
         } else {
             format!("{} est maintenant réveillé.", self.name)
         }
-    }
-
-    pub(crate) fn age(&mut self) -> String {
-        self.age += 1;
-        self.health -= 5;
-        format!("{} a vieilli. Nouvel âge: {}, Santé: {}", self.name, self.age, self.health)
     }
 
     pub(crate) fn mate(&self, other: &Self) -> Result<Self, String> {
@@ -193,9 +187,9 @@ impl CatInfo {
 
         if self.gender.eq(&other.gender) || self.sleep || other.sleep {
             tmp.push_str(&*format!("\nCan't mate {} with {}\nbecause:", self.name, other.name));
-            if self.gender.eq(&other.gender) { tmp.push_str("- Same Sexe"); }
-            if self.sleep { tmp.push_str(&*format!("- {} sleep", self.name)); }
-            if other.sleep { tmp.push_str(&*format!("- {} sleep", other.name)); }
+            if self.gender.eq(&other.gender) { tmp.push_str("\n- Same Sexe"); }
+            if self.sleep { tmp.push_str(&*format!("\n- {} sleep", self.name)); }
+            if other.sleep { tmp.push_str(&*format!("\n- {} sleep", other.name)); }
             return Err(tmp);
         }
 
@@ -214,13 +208,49 @@ impl CatInfo {
             race,
             weight: 1.0,
             sleep: false,
-            health: 100,
+            health: 100.0,
+            food: 100.0,
             gender,
+            last_updated: Local::now(),
         })
     }
 
+    pub(crate) fn update(&mut self) -> Option<()> {
+
+        if self.age >= 20{
+            return  None
+        }
+
+        let now = Local::now();
+        let duration = now.signed_duration_since(self.last_updated);
+
+        if duration.num_minutes() >= 5 {
+            self.age += (duration.num_minutes() / 5) as u8;
+            self.health = (self.health - 5.0 * (duration.num_minutes() / 5) as f32).max(0.0);
+            self.last_updated = now;
+            println!("{} a vieilli. Nouvel âge: {}, Santé: {}", self.name, self.age, self.health);
+        }
+
+        if self.age >= 20{
+            return  None
+        }
+
+        if self.food > 0.0 {
+            self.food -= 0.5;
+        } else {
+            self.health = (self.health - 10.0).max(0.0);
+        }
+
+        if self.health > 0.0 {
+            Some(self.health = (self.health - 2.0).max(0.0))
+        }else {
+            None
+        }
+    }
+
     pub(crate) fn minimal_info(&self)  -> String{
-        format!("Name: {}\n- Genre: {}\x1B[32m\n- Age: {}\n- Sleep: {}\n", self.name, self.gender, self.age, bool_state!("YES", "NO", self.sleep))
+        format!("Name: {}\n- Genre: {}\n- Age: {}\n- Sleep: {}\n- Health: {:.2}\n- Food: {:.2}",
+                self.name, self.gender, self.age, bool_state!("YES", "NO", self.sleep), self.health, self.food)
     }
 
 }
@@ -229,8 +259,8 @@ impl Display for CatInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Name: {}\n- Age: {} an(s)\n- Color: {}\n- Race: {}\n- Weight: {:.2} kg\n- Sleep: {}\n- Health: {}\n- Sexe: {}\n- Entrance: {}\n- Bd: {}",
-            self.name, self.age, self.color_type, self.race, self.weight, bool_state!("YES", "NO", self.sleep), self.health, self.gender, self.arrived_date, self.bd_date,
+            "Name: {}\n- Age: {} an(s)\n- Color: {}\n- Race: {}\n- Weight: {:.2} kg\n- Sleep: {}\n- Health: {:.2}\n- Food: {:.2}\n- Sexe: {}\n- Entrance: {}\n- Bd: {}",
+            self.name, self.age, self.color_type, self.race, self.weight, bool_state!("YES", "NO", self.sleep), self.health, self.food, self.gender, self.arrived_date, self.bd_date,
         )
     }
 }
