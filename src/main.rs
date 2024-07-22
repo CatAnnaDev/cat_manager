@@ -52,9 +52,9 @@ impl MyApp {
             for index in 0..self.cat_vec.len() {
                 if let None = self.cat_vec[index].update() {
                     rm_cat.push(index);
-                    toast(toasts, format!("{}", self.cat_vec[index]), ToastKind::Error, 20.0);
+                    toast(toasts, (format!("{}", self.cat_vec[index]), ToastKind::Error), 20.0);
                 }else {
-                    toast(toasts, self.cat_vec[index].minimal_info(), ToastKind::Success, 10.0);
+                    toast(toasts, (self.cat_vec[index].minimal_info(), ToastKind::Success), 10.0);
                 }
             }
             self.last_update = Instant::now();
@@ -90,15 +90,15 @@ impl eframe::App for MyApp {
                             let image = ui.add(egui::Image::new(format!("file://{}", self.cat_vec[cat].cat_image_byte.clone())).rounding(10.0));
                             image.context_menu(|ui| {
                                 if ui.add(Button::new("Feed")).clicked() {
-                                    toast(&mut toasts, self.cat_vec[cat].feed(0.1, 5.0), ToastKind::Success, 10.0);
+                                    toast(&mut toasts, self.cat_vec[cat].feed(0.1, 5.0), 10.0);
                                     ui.close_menu();
                                 }
                                 if ui.add(Button::new("Play")).clicked() {
-                                    toast(&mut toasts, self.cat_vec[cat].play(0.05, 2.0), ToastKind::Success, 10.0);
+                                    toast(&mut toasts, self.cat_vec[cat].play(0.05, 2.0), 10.0);
                                     ui.close_menu();
                                 }
                                 if ui.add(Button::new(format!("Sleep ({})", bool_state!("YES", "NO", self.cat_vec[cat].sleep)))).clicked() {
-                                    toast(&mut toasts, self.cat_vec[cat].toggle_sleep(10.0), ToastKind::Success, 10.0);
+                                    toast(&mut toasts, self.cat_vec[cat].toggle_sleep(10.0), 10.0);
                                     ui.close_menu();
                                 }
 
@@ -110,7 +110,7 @@ impl eframe::App for MyApp {
                                                     self.cat_vec.push(kitten);
                                                     ui.close_menu();
                                                 }
-                                                Err(e) => toast(&mut toasts, e, ToastKind::Warning, 10.0),
+                                                Err(e) => toast(&mut toasts, (e, ToastKind::Warning), 10.0),
                                             }
                                         }
                                     }
@@ -137,10 +137,10 @@ impl eframe::App for MyApp {
     }
 }
 
-fn toast(toasts: &mut Toasts, message: String,toast_type: ToastKind, time: f64) { // 5 base 20 die
+fn toast(toasts: &mut Toasts, message: (String,ToastKind) , time: f64) { // 5 base 20 die
     toasts.add(Toast {
-        text: message.into(),
-        kind: toast_type,
+        text: message.0.into(),
+        kind: message.1,
         options: ToastOptions::default()
             .duration_in_seconds(time)
             .show_progress(true),

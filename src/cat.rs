@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
 use chrono::{Datelike, DateTime, Duration, Local, NaiveDate};
+use egui_toast::ToastKind;
 use rand::{random, Rng, thread_rng};
 use crate::{bool_state};
 use crate::cat::Gender::{Female, Male};
@@ -151,34 +152,34 @@ impl CatInfo {
         cat_vec
     }
 
-    pub(crate) fn feed(&mut self, weight: f32, health: f32) -> String {
+    pub(crate) fn feed(&mut self, weight: f32, health: f32)  -> (String, ToastKind) {
         if !self.sleep {
             self.weight += weight; // 0.1
             self.health += health; // 5
             self.food += weight;  // Augmente la nourriture
-            format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}, Nourriture: {:.1}", self.name, self.weight, self.health, self.food)
+            (format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}, Nourriture: {:.1}", self.name, self.weight, self.health, self.food),  ToastKind::Success)
         }else {
-            format!("{} dort et ne peut pas manger.", self.name)
+            (format!("{} dort et ne peut pas manger.", self.name), ToastKind::Warning)
         }
     }
 
-    pub(crate) fn play(&mut self, weight: f32, health: f32) -> String {
+    pub(crate) fn play(&mut self, weight: f32, health: f32) -> (String, ToastKind) {
         if !self.sleep {
             self.weight -= weight; // 0.05
             self.health += health; // 2
-            format!("{} a joué. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health)
+            (format!("{} a joué. Nouveau poids: {:.1} kg, Santé: {}", self.name, self.weight, self.health), ToastKind::Success)
         } else {
-            format!("{} dort et ne peut pas jouer.", self.name)
+            (format!("{} dort et ne peut pas jouer.", self.name), ToastKind::Warning)
         }
     }
 
-    pub(crate) fn toggle_sleep(&mut self, health: f32) -> String {
+    pub(crate) fn toggle_sleep(&mut self, health: f32) -> (String, ToastKind) {
         self.sleep = !self.sleep;
         if self.sleep {
             self.health += health; // 10
-            format!("{} fait maintenant dodo. Santé: {}", self.name, self.health)
+            (format!("{} fait maintenant dodo. Santé: {}", self.name, self.health), ToastKind::Success)
         } else {
-            format!("{} est maintenant réveillé.", self.name)
+            (format!("{} est maintenant réveillé.", self.name), ToastKind::Success)
         }
     }
 
