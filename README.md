@@ -1,4 +1,5 @@
 # WIP
 doesn't work on X11, Wayland ?
 
-![image](https://github.com/user-attachments/assets/24628237-a3fc-414b-89e3-09a3758e97c0)
+![Screenshot 2024-07-22 at 23 55 52](https://github.com/user-attachments/assets/88280322-3d7b-4ec9-82c7-a6f42fd4c278)
+
