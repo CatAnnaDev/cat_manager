@@ -9,6 +9,7 @@ use crate::{bool_state};
 use crate::cat::Gender::{Female, Male};
 use crate::cat_name::{GENDER_FEMALE, GENDER_MALE};
 use crate::color::ColorType;
+use crate::inventory::Eat;
 use crate::race::Race;
 
 pub fn get_cat_image() -> String {
@@ -152,15 +153,24 @@ impl CatInfo {
         cat_vec
     }
 
-    pub(crate) fn feed(&mut self, weight: f32, health: f32)  -> (String, ToastKind) {
-        if !self.sleep {
-            self.weight += weight; // 0.1
-            self.health += health; // 5
-            self.food += weight;  // Augmente la nourriture
-            (format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}, Nourriture: {:.1}", self.name, self.weight, self.health, self.food),  ToastKind::Success)
-        }else {
-            (format!("{} dort et ne peut pas manger.", self.name), ToastKind::Warning)
-        }
+    pub(crate) fn feed(&mut self, weight: f32, health: f32, option: &mut Vec<Eat>) -> (String, ToastKind) {
+
+
+            if !self.sleep {
+                if let Some(food) = option.pop(){
+                self.weight += weight; // 0.1
+                self.health += health; // 5
+                self.food += food.food_value;  // Augmente la nourriture
+                (format!("{} a été nourri. Nouveau poids: {:.1} kg, Santé: {}, Nourriture: {:.1}", self.name, self.weight, self.health, self.food),  ToastKind::Success)
+                }else {
+                    ("Not Enough Food".to_string(), ToastKind::Warning)
+                }
+            }else {
+                (format!("{} dort et ne peut pas manger.", self.name), ToastKind::Warning)
+            }
+
+
+
     }
 
     pub(crate) fn play(&mut self, weight: f32, health: f32) -> (String, ToastKind) {

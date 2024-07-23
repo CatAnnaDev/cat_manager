@@ -4,12 +4,15 @@ use egui_toast::{Toast, ToastKind, ToastOptions, Toasts};
 use std::time::{Duration, Instant};
 
 use crate::cat::CatInfo;
+use crate::inventory::Inventory;
 
 mod cat;
 mod color;
 mod race;
 mod log_color;
 mod cat_name;
+mod inventory;
+
 
 fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -21,6 +24,8 @@ fn main() -> eframe::Result {
     };
 
     let cats = CatInfo::spawn_new_cat(2);
+    let mut inv = Inventory::get_inventory();
+    inv.fill_inventory(50);
     eframe::run_native(
         "Cat Manager",
         options,
@@ -32,6 +37,8 @@ fn main() -> eframe::Result {
                 columns: 0,
                 cat_vec: cats,
                 last_update: Instant::now(),
+                inventory: inv,
+                money: 1000,
             }))
         }),
     )
@@ -43,6 +50,8 @@ struct MyApp {
     columns: usize,
     cat_vec: Vec<CatInfo>,
     last_update: Instant,
+    inventory: Inventory,
+    money: u64,
 }
 
 impl MyApp {
@@ -72,15 +81,23 @@ impl eframe::App for MyApp {
         self.handle_cats_update(&mut toasts);
 
         egui::CentralPanel::default().show(ctx, |ui| {
+
             if ui.add(Button::new("Spawn new cat")).clicked() {
                 self.cat_vec.push(CatInfo::new_cat());
             }
-
             if ui.add(Button::new("Cat age 50+")).clicked() {
                 for x in 0..self.cat_vec.len() {
                     self.cat_vec[x].age += 50;
                 }
             }
+            if ui.add(Button::new("Add 1000 Money")).clicked(){
+                self.money += 1000;
+            }
+            if ui.add(Button::new("Add 1000 Food")).clicked(){
+                self.inventory.fill_inventory(1000);
+            }
+
+            ui.add(egui::Label::new(format!("Food: {}\nMoney: {}", self.inventory.slot.len(), self.money)));
 
             self.columns = 0;
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -90,7 +107,7 @@ impl eframe::App for MyApp {
                             let image = ui.add(egui::Image::new(format!("file://{}", self.cat_vec[cat].cat_image_byte.clone())).rounding(10.0));
                             image.context_menu(|ui| {
                                 if ui.add(Button::new("Feed")).clicked() {
-                                    toast(&mut toasts, self.cat_vec[cat].feed(0.1, 5.0), 10.0);
+                                    toast(&mut toasts, self.cat_vec[cat].feed(0.1, 5.0, &mut self.inventory.slot), 10.0);
                                     ui.close_menu();
                                 }
                                 if ui.add(Button::new("Play")).clicked() {
